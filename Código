@@ -1,0 +1,170 @@
+import pygame
+import random
+# Inicializar Pygame
+pygame.init()
+
+# Configuración de la pantalla
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Juego de objetos")
+
+# Cargar imágenes
+pizza_img = pygame.image.load('pizza.png').convert_alpha()
+pollo_img = pygame.image.load('pollo.png').convert_alpha()
+manzana_img = pygame.image.load('manzana.png').convert_alpha()
+veneno_img = pygame.image.load('veneno.png').convert_alpha()
+jugador_img = pygame.image.load('jugador.png').convert_alpha()
+
+# Escalar imágenes
+pizza_img = pygame.transform.scale(pizza_img, (40, 40))
+pollo_img = pygame.transform.scale(pollo_img, (40, 40))
+manzana_img = pygame.transform.scale(manzana_img, (40, 40))
+veneno_img = pygame.transform.scale(veneno_img, (40, 40))
+jugador_img = pygame.transform.scale(jugador_img, (60, 60))
+
+# Colores
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+
+# Fuentes de texto
+font = pygame.font.Font(None, 36)
+
+# Variables del juego
+score = 0
+objects = ['pizza', 'pollo', 'manzana', 'veneno']
+falling_objects = []
+object_speed = 5
+clock = pygame.time.Clock()
+player_speed = 5
+player_x = WIDTH // 2 - 30
+player_y = HEIGHT - 80
+
+# Función para mostrar puntaje
+def show_score():
+    score_text = font.render(f"Puntaje: {score}", True, WHITE)
+    screen.blit(score_text, (10, 10))
+
+# Función para mostrar mensaje de victoria
+def display_win_screen():
+    win_text = font.render("¡Has ganado!", True, GREEN)
+    screen.blit(win_text, (WIDTH // 2 - 100, HEIGHT // 2 - 50))
+    play_again_text = font.render("Haz clic para jugar otra vez | Presiona Esc para salir", True, WHITE)
+    screen.blit(play_again_text, (WIDTH // 2 - 250, HEIGHT // 2 + 50))
+
+# Función para mostrar mensaje de reinicio
+def display_restart_screen():
+    restart_text = font.render("Has perdido. Haz clic para reiniciar.", True, RED)
+    screen.blit(restart_text, (WIDTH // 2 - 200, HEIGHT // 2 - 50))
+
+# Función para mostrar pantalla de inicio
+def display_start_screen():
+    screen.fill(BLUE)
+    start_text = font.render("Haz clic para comenzar", True, WHITE)
+    screen.blit(start_text, (WIDTH // 2 - 150, HEIGHT // 2 - 50))
+
+# Función para mostrar fondo del juego
+def display_game_background():
+    # Fondo del juego
+    background_img = pygame.image.load('fondo.jpg').convert()
+    screen.blit(background_img, (0, 0))
+
+# Loop principal del juego
+running = True
+game_over = False
+game_started = False
+
+while running:
+    screen.fill((0, 0, 0))
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN and not game_started:
+            game_started = True
+
+        if game_over and event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                game_over = False
+                game_started = False
+                score = 0
+                falling_objects = []
+
+        if game_over and score >= 25 and event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                game_over = False
+                game_started = False
+                score = 0
+                falling_objects = []
+
+        if game_over and score >= 25 and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                running = False
+
+    if game_started:
+        display_game_background()
+
+    keys = pygame.key.get_pressed()
+
+    # Movimiento del jugador
+    if keys[pygame.K_LEFT] and player_x > 0:
+        player_x -= player_speed
+    if keys[pygame.K_RIGHT] and player_x < WIDTH - 60:
+        player_x += player_speed
+
+    if not game_over:
+        if random.randint(0, 100) < 3:
+            object_type = random.choice(objects)
+            falling_objects.append([object_type, random.randint(0, WIDTH - 50), 0])
+
+        for obj in falling_objects:
+            if obj[0] == 'pizza':
+                screen.blit(pizza_img, (obj[1], obj[2]))
+            elif obj[0] == 'pollo':
+                screen.blit(pollo_img, (obj[1], obj[2]))
+            elif obj[0] == 'manzana':
+                screen.blit(manzana_img, (obj[1], obj[2]))
+            else:
+                screen.blit(veneno_img, (obj[1], obj[2]))
+
+            obj[2] += object_speed
+
+            if obj[2] >= HEIGHT:
+                falling_objects.remove(obj)
+                break
+
+            if obj[2] >= HEIGHT - 50:
+                if obj[0] == 'veneno':
+                    if player_x < obj[1] + 40 and player_x + 60 > obj[1]:
+                        game_over = True
+                else:
+                    if obj[1] < player_x + 60 and obj[1] + 40 > player_x:
+                        if obj[0] == 'pizza':
+                            score += 1
+                        elif obj[0] == 'pollo':
+                            score += 2
+                        elif obj[0] == 'manzana':
+                            score += 3
+                        falling_objects.remove(obj)
+                        break
+
+        if score >= 25:
+            game_over = True
+
+    show_score()
+
+    if game_over and score >= 25:
+        display_win_screen()
+    elif game_over:
+        display_restart_screen()
+    elif not game_started:
+        display_start_screen()
+
+    # Dibujar jugador
+    screen.blit(jugador_img, (player_x, player_y))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
